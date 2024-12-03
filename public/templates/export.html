@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="https://chuck.stanford.edu/doc/images/chuck-logo2023w.png" type="image/png">
+    <!-- include ACE editor and webchuck basic styles -->
+    <script src="https://cdn.jsdelivr.net/gh/ccrma/webchuck-ide@main/cdn/ace/ace.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/ccrma/webchuck-ide@main/cdn/ace/editor.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/ccrma/webchuck-ide@main/cdn/webchuck.css" />
+    <!-- define script type="chuck" -->
+    <script type="module">
+      let l, e, t = 'script', p = /(from\s+|import\s+)['"](#[\w\-]+)['"]/g, x = 'textContent', d = document, o;
+      for (o of d.querySelectorAll(t + '[type=chuck]')) o[x] = 'export default `' + o[x] + '`', o.setAttribute('type', 'inline-module');
+      for (o of d.querySelectorAll(t + '[type=inline-module]')) l = d.createElement(t), o.id ? l.id = o.id : 0, l.type = 'module', l[x] = o[x].replace(p, (u, a, z) => (e = d.querySelector(t + z + '[type=module][src]')) ? a + `/* ${ z } */'${ e.src }'` : u), l.src = URL.createObjectURL(new Blob([l[x]], { type: 'application/java' + t })), o.replaceWith(l);//inline
+    </script>
+    <!-- chuck code script -->
+    <script id="chuck" type="chuck">SinOsc osc => dac; 1::second => now;</script>
+    <!-- main javascript code -->
+    <script type="inline-module">
+      import { Chuck } from 'https://cdn.jsdelivr.net/npm/webchuck/+esm';
+      import chuckCode from '#chuck';
+
+      const editor = newChuckEditor(document.getElementById("editor"), chuckCode);
+
+      const states = Object.freeze({
+        playing: 0,
+        stopped: 1
+      });
+      let status = states.stopped;
+
+      const action = document.querySelector('#action');
+      const openInIDE = document.querySelector('#openInIDE');
+
+      let theChuck; // global variable
+
+      // Play button
+      action.addEventListener('click', async () => {
+        // Initial load
+        if (theChuck === undefined) {
+          action.disabled = true;
+          action.innerHTML = "Loading...";
+          theChuck = await Chuck.init( {{{ PRELOAD_FILES }}} );
+          action.disabled = false;
+        }
+
+        switch (status) {
+          case states.playing:
+            status = states.stopped;
+            theChuck.removeLastCode();
+            // Stop button
+            action.innerHTML = `
+              Play
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-play" viewBox="0 0 16 16">
+                <path d="M10.804 8 5 4.633v6.734L10.804 8zm.792-.696a.802.802 0 0 1 0 1.392l-6.363 3.692C4.713 12.69 4 12.345 4 11.692V4.308c0-.653.713-.998 1.233-.696l6.363 3.692z"/>
+              </svg>
+            `;
+            break;
+          case states.stopped:
+            status = states.playing;
+            theChuck.runCode(editor.getValue());
+            // Play button
+            action.innerHTML = `
+              Stop
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-stop" viewBox="0 0 16 16">
+                <path d="M3.5 5A1.5 1.5 0 0 1 5 3.5h6A1.5 1.5 0 0 1 12.5 5v6a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 11V5zM5 4.5a.5.5 0 0 0-.5.5v6a.5.5 0 0 0 .5.5h6a.5.5 0 0 0 .5-.5V5a.5.5 0 0 0-.5-.5H5z"/>
+              </svg>
+            `;
+            break;
+        }
+      });
+
+      openInIDE.addEventListener('click', () => {
+        window.open("https://chuck.stanford.edu/ide", '_blank');
+      });
+
+      {{{ MIXER_CODE }}}
+    </script>
+    <title>WebChucK</title>
+  </head>
+
+  <body>
+    <header>
+      <h1><span id="title" style="font-weight: bold"></span></h1>
+      <div id="author" style="font-style: italic;"></div>
+      <p id="description" style="padding-bottom: 0.5rem;"></p>
+      <div id="webchuck-gui"></div>
+      <button id="action">
+        Play
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-play"
+              viewBox="0 0 16 16">
+          <path
+            d="M10.804 8 5 4.633v6.734L10.804 8zm.792-.696a.802.802 0 0 1 0 1.392l-6.363 3.692C4.713 12.69 4 12.345 4 11.692V4.308c0-.653.713-.998 1.233-.696l6.363 3.692z" />
+        </svg>
+      </button>
+      <button id="openInIDE">=> <em>to WebChucK IDE</em></button>
+    </header>
+
+
+    <main>
+      <div class="editor-container">
+        <div id="editor" class="ace_editor ace-chuck" style="width: 100%; height: 100%;"></div>
+      </div>
+    </main>
+
+  </body>
+
+</html>

@@ -1,0 +1,10 @@
+*.DS_Store
+.vscode
+node_modules
+.idea
+.yarn
+.pnp.*
+.idx
+yarn.lock
+dist
+scripts/json
